@@ -163,6 +163,18 @@ function ChatInterface() {
           </div>
         </div>
 
+        <Link
+          href="/directory"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+          aria-label="Find help near you"
+          title="Find help near you"
+        >
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7">
+            <path d="M9 2C6.2 2 4 4.2 4 7c0 3.8 5 9 5 9s5-5.2 5-9c0-2.8-2.2-5-5-5z" />
+            <circle cx="9" cy="7" r="1.8" />
+          </svg>
+        </Link>
+
         <button
           onClick={handleClear}
           className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${

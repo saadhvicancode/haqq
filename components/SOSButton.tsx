@@ -70,8 +70,11 @@ export default function SOSButton() {
     saved.forEach((c, i) => {
       setTimeout(() => {
         const phone = formatPhone(c.phone);
-        const win = window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
-        if (!win) window.open(`sms:${c.phone}&body=${encoded}`, "_blank");
+        const a = document.createElement("a");
+        a.href = `https://wa.me/${phone}?text=${encoded}`;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.click();
       }, i * 500);
     });
 

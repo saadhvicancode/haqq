@@ -83,6 +83,20 @@ export default function LandingPage() {
           {topics.map((t) => (
             <TopicCard key={t.topic} {...t} />
           ))}
+          <Link
+            href="/directory"
+            className="bg-white rounded-2xl p-5 text-left border border-gray-200 hover:border-teal-400 hover:shadow-md transition-all group active:scale-[0.98] flex items-start gap-4"
+          >
+            <span className="text-2xl">📋</span>
+            <div>
+              <div className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-teal-700 transition-colors">
+                Find help near you
+              </div>
+              <div className="text-xs text-gray-500 leading-relaxed">
+                Free NGOs, lawyers, Sakhi Centres, and helplines — verified and searchable by state.
+              </div>
+            </div>
+          </Link>
         </div>
       </section>
 

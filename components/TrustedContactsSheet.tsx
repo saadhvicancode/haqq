@@ -61,8 +61,11 @@ export default function TrustedContactsSheet({ isOpen, onClose, onSaved }: Props
     const text = encodeURIComponent(
       "Haqq Test: Hi, I added you as a trusted contact in Haqq safety app. Reply 'received' to confirm. (Ignore if unexpected.)"
     );
-    const win = window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
-    if (!win) window.open(`sms:${c.phone}&body=${text}`, "_blank");
+    const a = document.createElement("a");
+    a.href = `https://wa.me/${phone}?text=${text}`;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.click();
   };
 
   return (
