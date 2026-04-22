@@ -6,6 +6,7 @@ import Link from "next/link";
 import ChatBubble from "@/components/ChatBubble";
 import TypingIndicator from "@/components/TypingIndicator";
 import PanicButton from "@/components/PanicButton";
+import SOSButton from "@/components/SOSButton";
 
 const OPENING_MESSAGE =
   `Aadab. Main Haqq hoon — aapki apni legal guide.\n\n` +
@@ -247,6 +248,8 @@ function ChatInterface() {
           </span>
         </div>
       </div>
+
+      <SOSButton />
     </div>
   );
 }
