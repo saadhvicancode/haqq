@@ -22,7 +22,11 @@ function loadContacts(): Contact[] {
   }
 }
 
-export default function SOSButton() {
+interface Props {
+  onOpenContactsSheet?: () => void;
+}
+
+export default function SOSButton({ onOpenContactsSheet }: Props) {
   const { getPosition } = useGeolocation();
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -51,7 +55,8 @@ export default function SOSButton() {
 
     const saved = loadContacts();
     if (saved.length === 0) {
-      setSheetOpen(true);
+      if (onOpenContactsSheet) onOpenContactsSheet();
+      else setSheetOpen(true);
       return;
     }
 
@@ -207,9 +212,9 @@ export default function SOSButton() {
           </svg>
         </button>
 
-        {/* Gear icon — settings */}
+        {/* Gear icon — opens contacts settings */}
         <button
-          onClick={() => setSheetOpen(true)}
+          onClick={() => onOpenContactsSheet ? onOpenContactsSheet() : setSheetOpen(true)}
           aria-label="Edit trusted contacts"
           className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm text-gray-400 hover:text-gray-600 transition-colors"
         >
@@ -220,12 +225,14 @@ export default function SOSButton() {
         </button>
       </div>
 
-      {/* Setup / edit sheet */}
-      <TrustedContactsSheet
-        isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onSaved={(saved) => setContacts(saved)}
-      />
+      {/* Fallback sheet when used standalone (no external handler) */}
+      {!onOpenContactsSheet && (
+        <TrustedContactsSheet
+          isOpen={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          onSaved={(saved) => setContacts(saved)}
+        />
+      )}
     </>
   );
 }

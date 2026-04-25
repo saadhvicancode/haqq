@@ -72,7 +72,7 @@ export default function DirectoryPage() {
 
       {/* Results */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-8">
+        <div className="max-w-lg mx-auto px-4 py-4 space-y-3 pb-24">
           {results.length > 0 ? (
             results.map((entry) => <DirectoryCard key={entry.id} entry={entry} />)
           ) : (
@@ -87,7 +87,7 @@ export default function DirectoryPage() {
           )}
 
           {/* Disclaimer */}
-          <div className="mt-4 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+          <div className="mt-4 mb-4 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
             <p className="text-[12px] text-amber-700 leading-relaxed">
               <span className="font-semibold">Note:</span> Haqq does not verify availability. Always call ahead to confirm. All contacts are external — Haqq never mediates or tracks communication.
             </p>

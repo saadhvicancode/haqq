@@ -116,7 +116,7 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="px-6 py-6 max-w-lg mx-auto text-center">
+      <footer className="px-6 py-6 pb-24 max-w-lg mx-auto text-center">
         <p className="text-xs text-gray-400 leading-relaxed">
           Haqq is a guide, not a lawyer. For free legal representation contact{" "}
           <a
