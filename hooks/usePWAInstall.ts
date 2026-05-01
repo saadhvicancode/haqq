@@ -25,11 +25,11 @@ export function usePWAInstall() {
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Show banner after 30s OR on second visit
+    // Show banner after 45s OR on second visit
     const visits = Number(sessionStorage.getItem("haqq_visits") ?? 0) + 1;
     sessionStorage.setItem("haqq_visits", String(visits));
 
-    const delay = visits >= 2 ? 2000 : 30_000;
+    const delay = visits >= 2 ? 2000 : 45_000;
     const timer = setTimeout(() => {
       if (promptRef.current) setShowBanner(true);
     }, delay);

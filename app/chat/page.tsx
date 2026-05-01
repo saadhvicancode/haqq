@@ -8,11 +8,15 @@ import TypingIndicator from "@/components/TypingIndicator";
 import PanicButton from "@/components/PanicButton";
 import SOSButton from "@/components/SOSButton";
 import OfflineIndicator from "@/components/OfflineIndicator";
-import SettingsSheet, { AUTO_SEND_KEY } from "@/components/SettingsSheet";
+import SettingsSheet, { AUTO_SEND_KEY, VOICE_LANGS } from "@/components/SettingsSheet";
 import TrustedContactsSheet from "@/components/TrustedContactsSheet";
 import MicButton from "@/components/MicButton";
 import MicPermissionSheet from "@/components/MicPermissionSheet";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { exportChatToPDF } from "@/lib/export-pdf";
+
+const formatTime = (d: Date) =>
+  d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
 const OPENING_MESSAGE =
   `Aadab. Main Haqq hoon — aapki apni legal guide.\n\n` +
@@ -42,6 +46,9 @@ function ChatInterface() {
   const [showPermissionSheet, setShowPermissionSheet] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [autoSend, setAutoSend] = useState(false);
+  const [messageTimes, setMessageTimes] = useState<string[]>([
+    formatTime(new Date()),
+  ]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +66,7 @@ function ChatInterface() {
     error: micError,
     hasPermission,
     clearTranscript,
+    activeLang,
   } = useSpeechRecognition();
 
   const showToast = useCallback((msg: string) => {
@@ -72,10 +80,19 @@ function ChatInterface() {
     setAutoSend(localStorage.getItem(AUTO_SEND_KEY) === "true");
   }, [settingsOpen]);
 
-  // When speech recognition produces a final transcript, populate the input
+  // When speech recognition produces a final transcript, populate the input.
+  // We APPEND rather than overwrite — the hook commits transcript multiple
+  // times in a single session (each `final` result, plus the trailing interim
+  // promoted by stopListening). `setInput(transcript)` would let the second
+  // commit blow away the first, which is exactly the "stop button erases my
+  // text" bug.
   useEffect(() => {
     if (transcript) {
-      setInput(transcript);
+      setInput((prev) => {
+        if (!prev) return transcript;
+        const sep = prev.endsWith(" ") || transcript.startsWith(" ") ? "" : " ";
+        return prev + sep + transcript;
+      });
       clearTranscript();
       inputRef.current?.focus();
 
@@ -99,8 +116,26 @@ function ChatInterface() {
   }, [micError, showToast]);
 
   const handleMicClick = () => {
+    if (!micSupported) {
+      showToast("Voice input isn't supported in this browser — try Chrome or Edge.");
+      return;
+    }
     if (isListening) {
+      // The hook commits any pending interim into `transcript` synchronously
+      // inside stopListening, and the useEffect on `transcript` below moves it
+      // into `input`. We don't need to setInput here — doing so would race
+      // with the hook and could overwrite the value.
       stopListening();
+      return;
+    }
+    // Auto-stop already fired (continuous=false): transcript set but useEffect hasn't moved it to input yet
+    if (transcript) {
+      setInput((prev) => {
+        if (!prev) return transcript;
+        const sep = prev.endsWith(" ") || transcript.startsWith(" ") ? "" : " ";
+        return prev + sep + transcript;
+      });
+      clearTranscript();
       return;
     }
     if (hasPermission === false) {
@@ -164,6 +199,7 @@ function ChatInterface() {
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
+    setMessageTimes((prev) => [...prev, formatTime(new Date())]);
     setInput("");
     setIsStreaming(true);
 
@@ -188,6 +224,7 @@ function ChatInterface() {
       let assistantText = "";
 
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      setMessageTimes((prev) => [...prev, formatTime(new Date())]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -212,6 +249,7 @@ function ChatInterface() {
               "I'm sorry, something went wrong. Please try again in a moment.",
           },
         ]);
+        setMessageTimes((prev) => [...prev, formatTime(new Date())]);
       }
     } finally {
       setIsStreaming(false);
@@ -223,6 +261,7 @@ function ChatInterface() {
     if (showClearConfirm) {
       abortRef.current?.abort();
       setMessages([{ role: "assistant", content: OPENING_MESSAGE }]);
+      setMessageTimes([formatTime(new Date())]);
       setInput("");
       setIsStreaming(false);
       setShowClearConfirm(false);
@@ -295,6 +334,28 @@ function ChatInterface() {
           </svg>
         </button>
 
+        {messages.length >= 2 && (
+          <button
+            onClick={() =>
+              exportChatToPDF(
+                messages.map((m, i) => ({
+                  role: m.role,
+                  content: m.content,
+                  timestamp: messageTimes[i] ?? "",
+                }))
+              )
+            }
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+            aria-label="Save conversation"
+            title="Save conversation"
+          >
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7">
+              <path d="M9 2v9M5 8l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 13v2a1 1 0 001 1h12a1 1 0 001-1v-2" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+
         <button
           onClick={handleClear}
           className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
@@ -311,9 +372,11 @@ function ChatInterface() {
 
       {/* Offline banner */}
       {!isOnline && (
-        <div className="flex-shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-2.5 text-[12px] text-amber-700 text-center">
-          You&apos;re offline — Haqq can&apos;t answer new questions right now, but your{" "}
-          <Link href="/directory" className="underline font-medium">directory</Link> still works
+        <div
+          className="flex-shrink-0 flex items-center justify-center h-10 px-4 text-[12px] text-center border-b"
+          style={{ backgroundColor: "#FEF3C7", color: "#92400E", borderColor: "#FDE68A" }}
+        >
+          You&apos;re offline — Haqq can&apos;t answer new questions right now. Your directory and diary still work.
         </div>
       )}
 
@@ -358,24 +421,38 @@ function ChatInterface() {
       >
         {/* Listening status */}
         {isListening && (
-          <div className="text-[12px] text-red-500 font-medium mb-2 text-center animate-pulse">
-            Listening... speak in Hindi or English
+          <div className="text-[12px] mb-2 text-center">
+            <span className="text-red-500 font-medium animate-pulse">Listening</span>
+            <span className="text-gray-500">
+              {" in "}
+              {VOICE_LANGS.find((l) => l.code === activeLang)?.label ?? activeLang ?? "your language"}
+              {" — "}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="text-teal-600 underline underline-offset-2"
+            >
+              change
+            </button>
           </div>
         )}
 
         <div className="flex items-end gap-2">
-          {micSupported && (
-            <MicButton
-              isListening={isListening}
-              onClick={handleMicClick}
-              disabled={isStreaming}
-            />
-          )}
+          <MicButton
+            isListening={isListening}
+            onClick={handleMicClick}
+            disabled={isStreaming}
+          />
 
           <div className="relative flex-1">
             <textarea
               ref={inputRef}
-              value={isListening && interimTranscript ? interimTranscript : input}
+              // While the recognizer is feeding interim text, show it. After
+              // stopListening promotes interim → transcript → input, the
+              // useEffect clears interimTranscript on the same tick, so we
+              // smoothly fall through to `input` without a flash of empty.
+              value={interimTranscript || input}
               onChange={(e) => {
                 if (!isListening) setInput(e.target.value);
               }}

@@ -21,7 +21,10 @@ export async function POST(req: Request) {
 
   const chat = client.chats.create({
     model: "gemini-2.5-flash",
-    config: { systemInstruction: SYSTEM_PROMPT },
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      thinkingConfig: { thinkingBudget: 0 },
+    },
     history,
   });
 
@@ -81,8 +84,8 @@ export async function POST(req: Request) {
   return new Response(readable, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
       "Cache-Control": "no-cache",
+      "X-Accel-Buffering": "no",
     },
   });
 }

@@ -4,6 +4,33 @@ import { useEffect, useState } from "react";
 
 const DISGUISE_KEY = "haqq_disguise";
 export const AUTO_SEND_KEY = "haqq_voice_autosend";
+export const VOICE_LANG_KEY = "haqq_voice_lang";
+
+export const VOICE_LANGS: { code: string; label: string }[] = [
+  { code: "en-IN", label: "English (India)" },
+  { code: "hi-IN", label: "हिंदी" },
+  { code: "en-US", label: "English (US)" },
+  { code: "en-GB", label: "English (UK)" },
+  { code: "ur-IN", label: "اردو" },
+  { code: "bn-IN", label: "বাংলা" },
+  { code: "ta-IN", label: "தமிழ்" },
+  { code: "te-IN", label: "తెలుగు" },
+  { code: "mr-IN", label: "मराठी" },
+  { code: "gu-IN", label: "ગુજરાતી" },
+  { code: "pa-IN", label: "ਪੰਜਾਬੀ" },
+  { code: "kn-IN", label: "ಕನ್ನಡ" },
+];
+
+// Always defaults to en-IN unless the user has explicitly chosen otherwise.
+// Auto-detecting from navigator.language picked hi-IN for Hindi-locale browsers,
+// which then transcribed English speech as phonetic Hindi gibberish — a much
+// worse default than just speaking English.
+export function getDefaultVoiceLang(): string {
+  if (typeof window === "undefined") return "en-IN";
+  const stored = localStorage.getItem(VOICE_LANG_KEY);
+  if (stored && VOICE_LANGS.find((l) => l.code === stored)) return stored;
+  return "en-IN";
+}
 
 const DISGUISES = [
   {
@@ -78,12 +105,14 @@ export default function SettingsSheet({ isOpen, onClose, onOpenSOS }: Props) {
   const [selected, setSelected] = useState<DisguiseId>("notes");
   const [saved, setSaved] = useState(false);
   const [autoSend, setAutoSend] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<string>("en-IN");
 
   useEffect(() => {
     if (!isOpen) return;
     const stored = localStorage.getItem(DISGUISE_KEY) as DisguiseId | null;
     if (stored && DISGUISES.find((d) => d.id === stored)) setSelected(stored);
     setAutoSend(localStorage.getItem(AUTO_SEND_KEY) === "true");
+    setVoiceLang(getDefaultVoiceLang());
     setSaved(false);
   }, [isOpen]);
 
@@ -91,6 +120,11 @@ export default function SettingsSheet({ isOpen, onClose, onOpenSOS }: Props) {
     const next = !autoSend;
     setAutoSend(next);
     localStorage.setItem(AUTO_SEND_KEY, String(next));
+  };
+
+  const handleVoiceLangChange = (code: string) => {
+    setVoiceLang(code);
+    localStorage.setItem(VOICE_LANG_KEY, code);
   };
 
   if (!isOpen) return null;
@@ -184,6 +218,25 @@ export default function SettingsSheet({ isOpen, onClose, onOpenSOS }: Props) {
         {/* Voice input */}
         <div className="mb-6">
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Voice input</p>
+
+          <div className="px-3 py-3 rounded-xl border border-gray-200 mb-2">
+            <div className="text-[14px] font-medium text-gray-900 mb-0.5">Recognition language</div>
+            <div className="text-[12px] text-gray-400 mb-2.5">
+              Pick the language you usually speak. Speech in other languages may not be transcribed.
+            </div>
+            <select
+              value={voiceLang}
+              onChange={(e) => handleVoiceLangChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-[14px] text-gray-900 focus:outline-none focus:border-teal-400"
+            >
+              {VOICE_LANGS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex items-center justify-between px-3 py-3 rounded-xl border border-gray-200">
             <div>
               <div className="text-[14px] font-medium text-gray-900">Auto-send after voice input</div>
